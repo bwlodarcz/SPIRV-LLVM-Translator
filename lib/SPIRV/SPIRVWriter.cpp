@@ -3971,9 +3971,14 @@ SPIRVValue *LLVMToSPIRVBase::transIntrinsicInst(IntrinsicInst *II,
                           std::move(Operands), BB);
   }
   case Intrinsic::uadd_with_overflow: {
-    return BM->addBinaryInst(OpIAddCarry, transType(II->getType()),
-                             transValue(II->getArgOperand(0), BB),
-                             transValue(II->getArgOperand(1), BB), BB);
+    Type *T = II->getType();
+    return BM->addBinaryInst(
+        OpIAddCarry,
+        transType(StructType::create(
+            M->getContext(), {T->getContainedType(0), T->getContainedType(0)},
+            "")),
+        transValue(II->getArgOperand(0), BB),
+        transValue(II->getArgOperand(1), BB), BB);
   }
   case Intrinsic::memset: {
     // Generally there is no direct mapping of memset to SPIR-V.  But it turns

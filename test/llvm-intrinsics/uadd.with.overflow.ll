@@ -7,11 +7,22 @@
 
 target triple = "spir64-unknown-unknown"
 
-; CHECK-SPIRV: IAddCarry
-; CHECK-LLVM: call { i16, i1 } @llvm.uadd.with.overflow.i16
-; CHECK-LLVM: call { i32, i1 } @llvm.uadd.with.overflow.i32
-; CHECK-LLVM: call { i64, i1 } @llvm.uadd.with.overflow.i64
-; CHECK-LLVM: call { <4 x i32>, <4 x i1> } @llvm.uadd.with.overflow.v4i32
+; CHECK-SPIRV: TypeInt [[#I16TYPE:]] 16
+; CHECK-SPIRV: TypeInt [[#I32TYPE:]] 32
+; CHECK-SPIRV: TypeInt [[#I64TYPE:]] 64
+; CHECK-SPIRV: TypeStruct [[#S0TYPE:]] [[#I16TYPE]] [[#I16TYPE]]
+; CHECK-SPIRV: TypeStruct [[#S1TYPE:]] [[#I32TYPE]] [[#I32TYPE]]
+; CHECK-SPIRV: TypeStruct [[#S2TYPE:]] [[#I64TYPE]] [[#I64TYPE]]
+; CHECK-SPIRV: TypeVector [[#V4XI32TYPE:]] [[#I32TYPE]] 4
+; CHECK-SPIRV: TypeStruct [[#S3TYPE:]] [[#V4XI32TYPE]] [[#V4XI32TYPE]]
+; CHECK-SPIRV: IAddCarry [[#S0TYPE]]
+; CHECK-SPIRV: IAddCarry [[#S1TYPE]]
+; CHECK-SPIRV: IAddCarry [[#S2TYPE]]
+; CHECK-SPIRV: IAddCarry [[#S3TYPE]]
+; CHECK-LLVM: call { i16, i1 } @llvm.uadd.with.overflow.i16(i16 %a, i16 %b)
+; CHECK-LLVM: call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %a, i32 %b)
+; CHECK-LLVM: call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %a, i64 %b)
+; CHECK-LLVM: call { <4 x i32>, <4 x i1> } @llvm.uadd.with.overflow.v4i32(<4 x i32> %a, <4 x i32> %b)
 
 define spir_func void @test_uadd_with_overflow_i16(i16 %a, i16 %b) {
 entry:
