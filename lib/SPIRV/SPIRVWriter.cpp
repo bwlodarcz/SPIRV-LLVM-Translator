@@ -3971,14 +3971,39 @@ SPIRVValue *LLVMToSPIRVBase::transIntrinsicInst(IntrinsicInst *II,
                           std::move(Operands), BB);
   }
   case Intrinsic::uadd_with_overflow: {
-    Type *T = II->getType();
-    return BM->addBinaryInst(
+    // SPIRV standard requires that composite return type of OpIAddCarry should
+    // have the same type which is non compatible with llvm.uadd.with.overflow
+    // which emits second type as i1.
+    // The current approach to solve this issue is to construct second composite
+    // created from first with changed second type to boolean.
+    // Result code should look similar to this:
+    //   %1 = OpIAddCarry %_struct_1 %a %b
+    //   %2 = OpCompositeExtract %uint %1 0
+    //   %3 = OpCompositeExtract %uint %1 1
+    //   %4 = OpIEqual %bool %3 %uint_1
+    //   %res = OpCompositeConstruct %_struct_2 %2 %4
+    // where:
+    //   %uint_1 is a constant of value 1
+    Type *LLVMTy = II->getType();
+    SPIRVValue *AddCarry = BM->addBinaryInst(
         OpIAddCarry,
         transType(StructType::create(
-            M->getContext(), {T->getContainedType(0), T->getContainedType(0)},
-            "")),
+            M->getContext(),
+            {LLVMTy->getContainedType(0), LLVMTy->getContainedType(0)}, "")),
         transValue(II->getArgOperand(0), BB),
         transValue(II->getArgOperand(1), BB), BB);
+    SPIRVType *Ty = transType(LLVMTy->getContainedType(0));
+    SPIRVValue *Ex0 = BM->addCompositeExtractInst(Ty, AddCarry, {0}, BB);
+    SPIRVValue *Ex1 = BM->addCompositeExtractInst(Ty, AddCarry, {1}, BB);
+    SPIRVValue *One = transValue(
+        Constant::getIntegerValue(
+            LLVMTy->getContainedType(0),
+            APInt(LLVMTy->getContainedType(0)->getScalarSizeInBits(), 1)),
+        BB);
+    SPIRVValue *ConvToBool = BM->addBinaryInst(
+        OpIEqual, transType(LLVMTy->getContainedType(1)), Ex1, One, BB);
+    return BM->addCompositeConstructInst(
+        transType(LLVMTy), {Ex0->getId(), ConvToBool->getId()}, BB);
   }
   case Intrinsic::memset: {
     // Generally there is no direct mapping of memset to SPIR-V.  But it turns

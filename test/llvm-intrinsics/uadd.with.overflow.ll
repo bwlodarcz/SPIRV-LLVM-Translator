@@ -24,10 +24,11 @@ target triple = "spir64-unknown-unknown"
 ; CHECK-LLVM: call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %a, i64 %b)
 ; CHECK-LLVM: call { <4 x i32>, <4 x i1> } @llvm.uadd.with.overflow.v4i32(<4 x i32> %a, <4 x i32> %b)
 
-define spir_func void @test_uadd_with_overflow_i16(i16 %a, i16 %b) {
+define spir_func i1 @test_uadd_with_overflow_i16(i16 %a, i16 %b) {
 entry:
-  %res = call {i16, i1} @llvm.uadd.with.overflow.i16(i16 %a, i16 %b)
-  ret void
+  %t0 = call {i16, i1} @llvm.uadd.with.overflow.i16(i16 %a, i16 %b)
+  %t1 = extractvalue {i16, i1} %t0, 1
+  ret i1 %t1
 }
 
 define spir_func void @test_uadd_with_overflow_i32(i32 %a, i32 %b) {
